@@ -1,7 +1,8 @@
 #pragma once
 
-#include <soundio/soundio.h>
+#include <SDL2/SDL.h>
 
-int output_open_default_device(struct SoundIo *soundio, struct SoundIoOutStream *out);
+int output_open_default_device(void (*callback)(void*, Uint8*, int));
 
-void output_generator_noise(struct SoundIoOutStream *out, int frame_min, int frame_max);
+void output_start();
+void output_stop();

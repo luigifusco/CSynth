@@ -18,4 +18,6 @@ int midi_read_packet(int seqfd, midipkt_t *pkt);
 // given a packet containing a note gets the note name and tone, returns < 0 on failure
 int midi_get_note_id(midipkt_t *pkt, char const **note, int *tone);
 
+float midi_get_frequency(midipkt_t *pkt);
+
 int midi_close(int seqfd);
