@@ -2,6 +2,7 @@
 
 #include "settings.h"
 #include <math.h>
+#include <stdio.h>
 
 typedef struct {
     float freq;
@@ -25,4 +26,5 @@ void wave_generator_square_callback(void *user_data, Uint8 *raw_buffer, int byte
     for (int i = 0; i < len; ++i, (*sample_nr)++) {
         buffer[i] = (float) ((*sample_nr%period > (period/2)));
     }
+    printf("playinf\n");
 }

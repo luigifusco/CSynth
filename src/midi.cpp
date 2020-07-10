@@ -20,14 +20,16 @@ int midi_read_packet(int seqfd, midipkt_t *pkt) {
     return err;
 }
 
-const char const *note_codes[] = {
+const char *note_codes[] = {
     "A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#"
 };
 
 int midi_get_note_id(midipkt_t *pkt, char const **note, int *tone) {
     if (pkt->data[0] < MIDI_BASE) return -1;
-    *note = note_codes[(pkt->data[0] - MIDI_BASE)%12];
-    *tone = pkt->data[0]/12;
+    if (note)
+        *note = note_codes[(pkt->data[0] - MIDI_BASE)%12];
+    if (tone)
+        *tone = pkt->data[0]/12;
 
     return 0;
 }
