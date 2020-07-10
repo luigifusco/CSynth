@@ -31,14 +31,17 @@ int main() {
         }
         if (pkt.status == MIDI_NOTE) {
             float freq = midi_get_frequency(&pkt);
+            char const *id;
+            midi_get_note_id(&pkt, &id, NULL);
             if (pkt.data[1] > 0) {
-                char const *id;
-                midi_get_note_id(&pkt, &id, NULL);
-                std::cout << "PRESSED " << id << " (" << freq << ")" << std::endl << std::flush;
+                std::cout << "PRESSED " << id << " (" << freq << ") " << (int)pkt.data[1] << std::endl << std::flush;
                 wave::set_frequency(freq);
             } else {
+                std::cout << "RELEASED " << id << " (" << freq << ") " << (int)pkt.data[1] << std::endl << std::flush;
                 wave::unset_frequency(freq);
             }
+        } else if (pkt.status == MIDI_NOTEOFF) {
+            wave::unset_frequency(midi_get_frequency(&pkt));
         }
     }
 
