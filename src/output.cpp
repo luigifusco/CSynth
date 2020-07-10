@@ -1,5 +1,5 @@
-#include "output.h"
-#include "settings.h"
+#include "output.hpp"
+#include "settings.hpp"
 
 #include <sys/soundcard.h>
 #include <fcntl.h>
@@ -28,7 +28,9 @@ int open_device(void (*callback)(void*, Uint8*, int)) {
 
     SDL_AudioSpec have;
     
-    return SDL_OpenAudio(&want, &have);
+    if (SDL_OpenAudio(&want, &have) < 0) return -1;
+
+    return 0;
 }
 
 void start() {

@@ -8,11 +8,6 @@ typedef struct {
     unsigned char data[3];
 } midipkt_t;
 
-typedef struct {
-    unsigned char note;
-    unsigned char velocity;
-} note_event_t;
-
 
 // opens a sequencer at specified path and returns its fileno, returns < 0 on error
 int midi_open_sequencer(char *path);

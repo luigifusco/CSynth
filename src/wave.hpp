@@ -2,11 +2,13 @@
 
 #include <SDL2/SDL.h>
 
+namespace wave {
 
-int wave_init();
+void noise_callback(void *user_data, Uint8 *raw_buffer, int bytes);
+void square_callback(void *user_data, Uint8 *raw_buffer, int bytes);
+void sin_callback(void *user_data, Uint8 *raw_buffer, int bytes);
 
-void wave_generator_square_callback(void *user_data, Uint8 *raw_buffer, int bytes);
+void set_frequency(float freq);
+void unset_frequency(float freq);
 
-void wave_add_note(float freq);
-
-void wave_remove_note(float freq);
+}

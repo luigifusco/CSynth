@@ -4,13 +4,13 @@
 #include <time.h>
 #include <SDL2/SDL.h>
 
-#include "settings.h"
-#include "midi.h"
-#include "output.h"
-#include "wave.h"
+#include "settings.hpp"
+#include "midi.hpp"
+#include "output.hpp"
+#include "wave.hpp"
 
 int main() {
-    if (output::open_device(wave_generator_square_callback) < 0) {
+    if (output::open_device(wave::square_callback) < 0) {
         std::cerr << "Error opening output" << std::endl;
         exit(EXIT_FAILURE);
     }    
@@ -30,12 +30,14 @@ int main() {
             exit(EXIT_FAILURE);
         }
         if (pkt.status == MIDI_NOTE) {
+            float freq = midi_get_frequency(&pkt);
             if (pkt.data[1] > 0) {
                 char const *id;
                 midi_get_note_id(&pkt, &id, NULL);
-                float freq = midi_get_frequency(&pkt);
                 std::cout << "PRESSED " << id << " (" << freq << ")" << std::endl << std::flush;
-                wave_set_frequency(freq);
+                wave::set_frequency(freq);
+            } else {
+                wave::unset_frequency(freq);
             }
         }
     }

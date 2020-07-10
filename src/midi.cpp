@@ -1,4 +1,4 @@
-#include "midi.h"
+#include "midi.hpp"
 
 #include <sys/soundcard.h>
 #include <fcntl.h>
