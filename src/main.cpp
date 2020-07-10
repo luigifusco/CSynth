@@ -10,7 +10,8 @@
 #include "wave.h"
 
 int main() {
-    if (output::open_device(wave_generator_square_callback) < 0) {
+    int output_device = output::open_device(wave_generator_square_callback;
+    if (!output_device) {
         std::cerr << "Error opening output" << std::endl;
         exit(EXIT_FAILURE);
     }    
@@ -21,7 +22,7 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
-    output::start();
+    output::start(output_device);
 
     midipkt_t pkt;
     while(1) {

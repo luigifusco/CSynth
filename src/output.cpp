@@ -37,18 +37,16 @@ int open_device(void (*callback)(void*, Uint8*, int)) {
         std::cout << "> ";
         std::cin >> choice;
     }
-    if (SDL_OpenAudioDevice(SDL_GetAudioDeviceName(choice, 0), 0, &want, &have, 0)) return -1;
 
-    return 0;
+    return SDL_OpenAudioDevice(SDL_GetAudioDeviceName(choice, 0), 0, &want, &have, 0);
 }
 
-void start() {
-    SDL_PauseAudio(0);
-    SDL_Delay(1000);
+void start(int dev) {
+    SDL_PauseAudioDevice(dev, 0);
 }
 
-void stop() {
-    SDL_PauseAudio(1);
+void stop(int dev) {
+    SDL_PauseAudioDevice(dev, 1);
 }
 
 }
