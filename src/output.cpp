@@ -1,5 +1,6 @@
 #include "output.hpp"
 #include "settings.hpp"
+#include "wave.hpp"
 
 #include <sys/soundcard.h>
 #include <fcntl.h>
@@ -14,7 +15,7 @@ namespace output {
 
 int sample_nr = 0;
 
-int open_device(void (*callback)(void*, Uint8*, int)) {
+int open_device() {
     if (SDL_Init(SDL_INIT_AUDIO)) return -1;
 
     SDL_AudioSpec want = {
@@ -22,7 +23,7 @@ int open_device(void (*callback)(void*, Uint8*, int)) {
         .format = AUDIO_F32SYS,
         .channels = 1,
         .samples = N_SAMPLES,
-        .callback = callback,
+        .callback = wave::callback,
         .userdata = &sample_nr
     };
 

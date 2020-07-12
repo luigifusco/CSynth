@@ -1,23 +1,30 @@
 #pragma once
 
-#define MIDI_NOTEOFF 0x80
-#define MIDI_NOTE 0x90
+#include <string>
+
+namespace midi {
+
+const unsigned char NOTEOFF = 0x80;
+const unsigned char NOTE = 0x90;
+const unsigned char TIMING = 0xF0;
+const unsigned char STOP = 0x50;
 
 typedef struct {
     unsigned char status;
     unsigned char data[3];
 } midipkt_t;
 
+class MIDIDevice {
+    private:
+    int fd;
+    public:
+    MIDIDevice(std::string path);
+    midipkt_t readPacket();
+    int close_device();
+};
 
-// opens a sequencer at specified path and returns its fileno, returns < 0 on error
-int midi_open_sequencer(char *path);
+std::string getNoteId(midipkt_t &pkt);
+int getNoteTone(midipkt_t &pkt);
+float getNoteFrequency(midipkt_t &pkt);
 
-// reads a packet from a sequencer, returns < 0 on failure
-int midi_read_packet(int seqfd, midipkt_t *pkt);
-
-// given a packet containing a note gets the note name and tone, returns < 0 on failure
-int midi_get_note_id(midipkt_t *pkt, char const **note, int *tone);
-
-float midi_get_frequency(midipkt_t *pkt);
-
-int midi_close(int seqfd);
+}

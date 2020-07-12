@@ -4,7 +4,7 @@
 
 namespace output {
     
-int open_device(void (*callback)(void*, Uint8*, int));
+int open_device();
 
 void start();
 void stop();

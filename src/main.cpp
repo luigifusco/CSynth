@@ -9,39 +9,57 @@
 #include "output.hpp"
 #include "wave.hpp"
 
+
 int main() {
-    if (output::open_device(wave::square_callback) < 0) {
+    wave::mtx.lock();
+    wave::instrument = new wave::SquareInstrument();
+    wave::mtx.unlock();
+
+    if (output::open_device() < 0) {
         std::cerr << "Error opening output" << std::endl;
         exit(EXIT_FAILURE);
     }    
 
-    int seqfd = midi_open_sequencer(MIDI_DEVICE);
-    if (seqfd < 0) {
-        std::cerr << "Error opening sequencer" << std::endl;
-        exit(EXIT_FAILURE);
-    }
+    midi::MIDIDevice sequencer(MIDI_DEVICE);
 
     output::start();
 
-    midipkt_t pkt;
+    midi::midipkt_t pkt;
     while(1) {
-        if (midi_read_packet(seqfd, &pkt) < 0)  {
-            std::cerr << "Error reading packet" << std::endl;
-            exit(EXIT_FAILURE);
-        }
-        if (pkt.status == MIDI_NOTE) {
-            float freq = midi_get_frequency(&pkt);
-            char const *id;
-            midi_get_note_id(&pkt, &id, NULL);
-            if (pkt.data[1] > 0) {
-                std::cout << "PRESSED " << id << " (" << freq << ") " << (int)pkt.data[1] << std::endl << std::flush;
-                wave::set_frequency(freq);
-            } else {
-                std::cout << "RELEASED " << id << " (" << freq << ") " << (int)pkt.data[1] << std::endl << std::flush;
-                wave::unset_frequency(freq);
+        pkt = sequencer.readPacket();
+        if (pkt.status == midi::NOTE || pkt.status == midi::NOTEOFF) {
+            if (pkt.status == midi::NOTE) {
+                if (pkt.data[1] > 0) {
+                    std::cout <<
+                        "PRESSED " <<
+                        midi::getNoteId(pkt) <<
+                        " (" << midi::getNoteFrequency(pkt) << ") " <<
+                        (int)pkt.data[1] << std::endl << std::flush;
+                    wave::instrument->addFrequency(midi::getNoteFrequency(pkt));
+                } else {
+                    std::cout <<
+                        "RELEASED " <<
+                        midi::getNoteId(pkt) <<
+                        " (" << midi::getNoteFrequency(pkt) << ") " <<
+                        (int)pkt.data[1] << std::endl << std::flush;
+                    wave::instrument->removeFrequency(midi::getNoteFrequency(pkt));
+                }
+            } else if (pkt.status == midi::NOTEOFF) {
+                std::cout << "RELEASED (ALT) " <<
+                midi::getNoteId(pkt) <<
+                        " (" << midi::getNoteFrequency(pkt) << ") " <<
+                        (int)pkt.data[1] << std::endl << std::flush;
+                wave::instrument->removeFrequency(midi::getNoteFrequency(pkt));
             }
-        } else if (pkt.status == MIDI_NOTEOFF) {
-            wave::unset_frequency(midi_get_frequency(&pkt));
+        } else if (pkt.status == midi::STOP) {
+            wave::instrument->clearFrequencies();
+        } else if (pkt.status != midi::TIMING && pkt.status != 254) {
+            for (int i = 0; i < 8; ++i) {
+                std::string val = pkt.status & 0x80 ? "1" : "0";
+                std::cout << val;
+                pkt.status <<= 1;
+            }
+            std::cout << std::endl << std::flush;
         }
     }
 

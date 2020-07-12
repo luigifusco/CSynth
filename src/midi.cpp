@@ -4,42 +4,53 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <math.h>
+#include <string>
 
-#define MIDI_BASE 21
-#define MIDI_A4 69
+namespace midi {
+
+static const int MIDI_BASE = 21;
+static const int MIDI_A4 = 69;
 
 static const float note_step = 1.059463094f;
 
-int midi_open_sequencer(char *path) {
-    return open(path, O_RDONLY);
+MIDIDevice::MIDIDevice(std::string path) {
+    fd = open(path.c_str(), O_RDONLY);
+    if (fd < 0) throw "Invalid file!";
 }
 
-int midi_read_packet(int seqfd, midipkt_t *pkt) {
-    int err = read(seqfd, pkt, sizeof(midipkt_t));
+midipkt_t MIDIDevice::readPacket() {
+    midipkt_t pkt;
+    if (read(fd, &pkt, sizeof(midipkt_t)) < 0)
+        throw "Error reading!";
+    pkt.status &= 0xF0;
 
-    return err;
+    return pkt;
 }
 
-const char *note_codes[] = {
+const std::string note_codes[] = {
     "A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#"
 };
 
-int midi_get_note_id(midipkt_t *pkt, char const **note, int *tone) {
-    if (pkt->data[0] < MIDI_BASE) return -1;
-    if (note)
-        *note = note_codes[(pkt->data[0] - MIDI_BASE)%12];
-    if (tone)
-        *tone = pkt->data[0]/12;
-
-    return 0;
+std::string getNoteId(midipkt_t &pkt) {
+    if (pkt.data[0] < MIDI_BASE) throw "Invalid note!";
+    
+    return note_codes[(pkt.data[0] - MIDI_BASE)%12];
 }
 
-float midi_get_frequency(midipkt_t *pkt) {
-    float diff = pkt->data[0] - MIDI_A4;
+int getNoteTone(midipkt_t &pkt) {
+    if (pkt.data[0] < MIDI_BASE) throw "Invalid note!";
+    
+    return pkt.data[0]/12;
+}
+
+float getNoteFrequency(midipkt_t &pkt) {
+    float diff = pkt.data[0] - MIDI_A4;
 
     return 440.0f * powf(note_step, diff);
 }
 
-int midi_close(int seqfd) {
-    return close(seqfd);
+int MIDIDevice::close_device() {
+    return close(fd);
+}
+
 }
