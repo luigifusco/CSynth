@@ -9,4 +9,6 @@ void open_device();
 void start();
 void stop();
 
+extern int sample_nr;
+
 }

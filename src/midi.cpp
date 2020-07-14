@@ -18,9 +18,9 @@ MIDIDevice::MIDIDevice(std::string path) {
     if (fd < 0) throw "Invalid MIDI device!";
 }
 
-midipkt_t MIDIDevice::readPacket() {
-    midipkt_t pkt;
-    if (read(fd, &pkt, sizeof(midipkt_t)) < 0)
+pkt_t MIDIDevice::readPacket() {
+    pkt_t pkt;
+    if (read(fd, &pkt, sizeof(pkt_t)) < 0)
         throw "Error reading MIDI packet!";
     pkt.status &= 0xF0;
 
@@ -31,19 +31,19 @@ const std::string note_codes[] = {
     "A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#"
 };
 
-std::string getNoteId(midipkt_t &pkt) {
+std::string getNoteId(pkt_t &pkt) {
     if (pkt.data[0] < MIDI_BASE) throw "Invalid note!";
     
     return note_codes[(pkt.data[0] - MIDI_BASE)%12];
 }
 
-int getNoteTone(midipkt_t &pkt) {
+int getNoteTone(pkt_t &pkt) {
     if (pkt.data[0] < MIDI_BASE) throw "Invalid note!";
     
     return pkt.data[0]/12;
 }
 
-float getNoteFrequency(midipkt_t &pkt) {
+float getNoteFrequency(pkt_t &pkt) {
     float diff = pkt.data[0] - MIDI_A4;
 
     return 440.0f * powf(note_step, diff);

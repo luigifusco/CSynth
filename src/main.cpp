@@ -28,6 +28,8 @@ wave::Source *sourceBuilder() {
             s = new wave::SawInstrument();
         } else if (name == "noise") {
             s = new wave::NoiseInstrument();
+        } else if (name == "sin") {
+            s = new wave::SinInstrument();
         } else if (name == "tremolo") {
             iss >> args[0];
             iss >> args[1];
@@ -54,35 +56,13 @@ int main() {
 
         output::start();
 
-        midi::midipkt_t pkt;
+        midi::pkt_t pkt;
         while(1) {
             pkt = sequencer.readPacket();
-            if (pkt.status == midi::NOTE || pkt.status == midi::NOTEOFF) {
-                if (pkt.status == midi::NOTE) {
-                    if (pkt.data[1] > 0) {
-                        std::cout <<
-                            "PRESSED " <<
-                            midi::getNoteId(pkt) <<
-                            " (" << midi::getNoteFrequency(pkt) << ") " <<
-                            (int)pkt.data[1] << std::endl << std::flush;
-                        wave::getSource()->addFrequency(midi::getNoteFrequency(pkt));
-                    } else {
-                        std::cout <<
-                            "RELEASED " <<
-                            midi::getNoteId(pkt) <<
-                            " (" << midi::getNoteFrequency(pkt) << ") " <<
-                            (int)pkt.data[1] << std::endl << std::flush;
-                        wave::getSource()->removeFrequency(midi::getNoteFrequency(pkt));
-                    }
-                } else if (pkt.status == midi::NOTEOFF) {
-                    std::cout << "RELEASED (ALT) " <<
-                    midi::getNoteId(pkt) <<
-                            " (" << midi::getNoteFrequency(pkt) << ") " <<
-                            (int)pkt.data[1] << std::endl << std::flush;
-                    wave::getSource()->removeFrequency(midi::getNoteFrequency(pkt));
-                }
-            } else if (pkt.status == midi::STOP) {
-                wave::getSource()->clearFrequencies();
+            if (pkt.status == midi::NOTE) {
+                wave::getSource()->addNote(pkt);
+            } else if (pkt.status == midi::NOTEOFF) {
+                wave::getSource()->removeNote(pkt);
             } else if (pkt.status != midi::TIMING && pkt.status != 254) {
                 for (int i = 0; i < 8; ++i) {
                     std::string val = pkt.status & 0x80 ? "1" : "0";

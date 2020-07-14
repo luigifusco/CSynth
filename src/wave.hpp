@@ -1,5 +1,7 @@
 #pragma once
 
+#include "midi.hpp"
+
 #include <SDL2/SDL.h>
 #include <set>
 #include <mutex>
@@ -7,20 +9,36 @@
 
 namespace wave {
 
+class Note {
+    public:
+    float freq;
+    int t;
+    int vel;
+    Note(float freq, int t, int vel) {
+        this->freq = freq; this->t = t; this->vel = vel;
+    }
+    bool operator<(const Note& n) const {
+        return freq < n.freq;
+    }
+    bool operator==(const Note& n) const {
+        return freq == n.freq;
+    }
+};
+
 class Source {
     public:
     virtual float getSample(int t) = 0;
-    virtual void addFrequency(float f) = 0;
-    virtual void removeFrequency(float f) = 0;
-    virtual void clearFrequencies() = 0;
+    virtual void addNote(midi::pkt_t pkt) = 0;
+    virtual void removeNote(midi::pkt_t pkt) = 0;
+    virtual void clearNotes() = 0;
 };
 
 class Instrument: public Source {
     public:
-    std::set<float> freqs;
-    void addFrequency(float f);
-    void removeFrequency(float f);
-    void clearFrequencies();
+    std::set<Note> notes;
+    void addNote(midi::pkt_t pkt);
+    void removeNote(midi::pkt_t pkt);
+    void clearNotes();
 };
 
 class Modifier: public Source {
@@ -28,9 +46,9 @@ class Modifier: public Source {
     Source *src;
     public:
     Modifier(Source *s);
-    void addFrequency(float f);
-    void removeFrequency(float f);
-    void clearFrequencies();
+    void addNote(midi::pkt_t pkt);
+    void removeNote(midi::pkt_t pkt);
+    void clearNotes();
 };
 
 class TremoloModifier: public Modifier {

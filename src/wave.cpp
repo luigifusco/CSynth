@@ -1,6 +1,7 @@
 #include "wave.hpp"
 
 #include "settings.hpp"
+#include "output.hpp"
 #include <math.h>
 #include <stdio.h>
 #include <time.h>
@@ -28,9 +29,10 @@ float VoidInstrument::getSample(int t) {
 
 float SquareInstrument::getSample(int t) {
     float val = 0.0f;
-    for (float const& f : freqs) {
-        float period = ((float) SAMPLE_RATE / f);
-        val += ((float) ((t%(int)period > ((int)period/2)))) / 10.0f;
+    for (Note const& n : notes) {
+        float period = ((float) SAMPLE_RATE / n.freq);
+        if (t - n.t < SAMPLE_RATE)
+            val += ((float) n.vel / (float) midi::VEL_MAX) * (1.0f - ((float) (t - n.t) / (float) SAMPLE_RATE)) * (((float) ((t%(int)period > ((int)period/2)))) / 10.0f);
     }
 
     return val;
@@ -38,9 +40,10 @@ float SquareInstrument::getSample(int t) {
 
 float SawInstrument::getSample(int t) {
     float val = 0.0f;
-    for (float const& f : freqs) {
-        float period = ((float) SAMPLE_RATE / f);
-        val += ((float) ((int)t%(int)period * 2 / period) - 1) / 10.0f;
+    for (Note const& n : notes) {
+        float period = ((float) SAMPLE_RATE / n.freq);
+        if (t - n.t < SAMPLE_RATE)
+            val += ((float) n.vel / (float) midi::VEL_MAX) * (1.0f - ((float) (t - n.t) / (float) SAMPLE_RATE)) * ((float) ((int)t%(int)period * 2 / period) - 1) / 10.0f;
     }
 
     return val;
@@ -48,17 +51,18 @@ float SawInstrument::getSample(int t) {
 
 float SinInstrument::getSample(int t) {
     float val = 0.0f;
-    for (float const& f : freqs) {
-        float period = ((float) SAMPLE_RATE / f);
-        val += (sinf(t * 2 * M_PI / period)) / 10.0f;
+    for (Note const& n : notes) {
+        float period = ((float) SAMPLE_RATE / n.freq);
+        if (t - n.t < SAMPLE_RATE)
+            val += ((float) n.vel / (float) midi::VEL_MAX) * (1.0f - ((float) (t - n.t) / (float) SAMPLE_RATE)) * (sinf(t * 2 * M_PI / period)) / 10.0f;
     }
 
     return val;
 }
 
 float NoiseInstrument::getSample(int t) {
-    if (freqs.size() > 0)
-        return (float) rand() / (float) RAND_MAX;
+    if (notes.size() > 0)
+        return ((float) rand() / (float) RAND_MAX);
     return 0;
 }
 
@@ -78,34 +82,37 @@ void callback(void *user_data, Uint8 *raw_buffer, int bytes) {
     *((int*)user_data) = sample_nr;
 }
 
-void Instrument::addFrequency(float f) {
+void Instrument::addNote(midi::pkt_t pkt) {
     mtx.lock();
-    freqs.insert(f);
+    Note n(midi::getNoteFrequency(pkt), output::sample_nr, pkt.data[1]);
+    notes.erase(n);
+    notes.insert(n);
     mtx.unlock();
 }
 
-void Instrument::removeFrequency(float f) {
+void Instrument::removeNote(midi::pkt_t pkt) {
     mtx.lock();
-    freqs.erase(f);
+    Note n(midi::getNoteFrequency(pkt), output::sample_nr, pkt.data[1]);
+    notes.erase(n);
     mtx.unlock();
 }
 
-void Instrument::clearFrequencies() {
+void Instrument::clearNotes() {
     mtx.lock();
-    freqs.clear();
+    notes.clear();
     mtx.unlock();
 }
 
-void Modifier::addFrequency(float f) {
-    src->addFrequency(f);
+void Modifier::addNote(midi::pkt_t pkt) {
+    src->addNote(pkt);
 }
 
-void Modifier::removeFrequency(float f) {
-    src->removeFrequency(f);
+void Modifier::removeNote(midi::pkt_t pkt) {
+    src->removeNote(pkt);
 }
 
-void Modifier::clearFrequencies() {
-    src->clearFrequencies();
+void Modifier::clearNotes() {
+    src->clearNotes();
 }
 
 Modifier::Modifier(Source *s) {
