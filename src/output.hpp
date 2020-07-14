@@ -4,7 +4,7 @@
 
 namespace output {
     
-int open_device();
+void open_device();
 
 void start();
 void stop();

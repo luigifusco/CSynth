@@ -1,0 +1,3 @@
+square
+phase 5.0 30.0
+tremolo 20.0 0.1

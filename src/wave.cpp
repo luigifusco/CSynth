@@ -9,24 +9,44 @@
 
 namespace wave {
 
-Instrument *instrument = new Instrument();
+Source *globalSource = new VoidInstrument();
 std::mutex mtx;
 
-float Instrument::getSample(float t) {
+void setSource(Source *inst) {
+    mtx.lock();
+    globalSource = inst;
+    mtx.unlock();
+}
+
+Source *getSource() {
+    return globalSource;
+}
+
+float VoidInstrument::getSample(int t) {
     return 0;
 }
 
-float SquareInstrument::getSample(float t) {
+float SquareInstrument::getSample(int t) {
     float val = 0.0f;
     for (float const& f : freqs) {
         float period = ((float) SAMPLE_RATE / f);
-        val += ((float) (((int)t%(int)period > ((int)period/2)))) / 10.0f;
+        val += ((float) ((t%(int)period > ((int)period/2)))) / 10.0f;
     }
 
     return val;
 }
 
-float SinInstrument::getSample(float t) {
+float SawInstrument::getSample(int t) {
+    float val = 0.0f;
+    for (float const& f : freqs) {
+        float period = ((float) SAMPLE_RATE / f);
+        val += ((float) ((int)t%(int)period * 2 / period) - 1) / 10.0f;
+    }
+
+    return val;
+}
+
+float SinInstrument::getSample(int t) {
     float val = 0.0f;
     for (float const& f : freqs) {
         float period = ((float) SAMPLE_RATE / f);
@@ -36,8 +56,10 @@ float SinInstrument::getSample(float t) {
     return val;
 }
 
-float NoiseInstrument::getSample(float t) {
-    return (float) rand() / (float) RAND_MAX;
+float NoiseInstrument::getSample(int t) {
+    if (freqs.size() > 0)
+        return (float) rand() / (float) RAND_MAX;
+    return 0;
 }
 
 void callback(void *user_data, Uint8 *raw_buffer, int bytes) {
@@ -49,7 +71,7 @@ void callback(void *user_data, Uint8 *raw_buffer, int bytes) {
 
     mtx.lock();
     for (int i = 0; i < len; ++i, sample_nr++) {
-        buffer[i] = instrument->getSample((float)sample_nr);
+        buffer[i] = globalSource->getSample(sample_nr);
     }
     mtx.unlock();
 
@@ -72,6 +94,47 @@ void Instrument::clearFrequencies() {
     mtx.lock();
     freqs.clear();
     mtx.unlock();
+}
+
+void Modifier::addFrequency(float f) {
+    src->addFrequency(f);
+}
+
+void Modifier::removeFrequency(float f) {
+    src->removeFrequency(f);
+}
+
+void Modifier::clearFrequencies() {
+    src->clearFrequencies();
+}
+
+Modifier::Modifier(Source *s) {
+    src = s;
+}
+
+TremoloModifier::TremoloModifier(Source *s, float tremolo, float intensity) : Modifier(s) {
+    tremoloFrequency = tremolo;
+    tremoloIntensity = intensity;
+}
+
+float TremoloModifier::getSample(int t) {
+    float samp = src->getSample(t);
+    float period = ((float) SAMPLE_RATE / tremoloFrequency);
+    float modifier = (sinf(t * 2 * M_PI / period) * tremoloIntensity / 2) + 1 - (tremoloIntensity / 2);
+
+    return samp * modifier;
+}
+
+PhaseShiftModifier::PhaseShiftModifier(Source *s, float shift, float intensity) : Modifier(s) {
+    shiftFrequency = shift;
+    shiftIntensity = intensity;
+}
+
+float PhaseShiftModifier::getSample(int t) {
+    float period = ((float) SAMPLE_RATE / shiftFrequency);
+    int modifier = sinf(t * 2 * M_PI / period) * shiftIntensity;
+    
+    return src->getSample(t + modifier);
 }
 
 }

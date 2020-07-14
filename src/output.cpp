@@ -15,8 +15,8 @@ namespace output {
 
 int sample_nr = 0;
 
-int open_device() {
-    if (SDL_Init(SDL_INIT_AUDIO)) return -1;
+void open_device() {
+    if (SDL_Init(SDL_INIT_AUDIO)) throw "Error initializing SDL!";
 
     SDL_AudioSpec want = {
         .freq = SAMPLE_RATE,
@@ -29,9 +29,7 @@ int open_device() {
 
     SDL_AudioSpec have;
     
-    if (SDL_OpenAudio(&want, &have) < 0) return -1;
-
-    return 0;
+    if (SDL_OpenAudio(&want, &have) < 0) throw "Error opening output!";
 }
 
 void start() {

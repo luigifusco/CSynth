@@ -15,13 +15,13 @@ static const float note_step = 1.059463094f;
 
 MIDIDevice::MIDIDevice(std::string path) {
     fd = open(path.c_str(), O_RDONLY);
-    if (fd < 0) throw "Invalid file!";
+    if (fd < 0) throw "Invalid MIDI device!";
 }
 
 midipkt_t MIDIDevice::readPacket() {
     midipkt_t pkt;
     if (read(fd, &pkt, sizeof(midipkt_t)) < 0)
-        throw "Error reading!";
+        throw "Error reading MIDI packet!";
     pkt.status &= 0xF0;
 
     return pkt;
