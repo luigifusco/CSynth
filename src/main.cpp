@@ -10,10 +10,11 @@
 #include "midi.hpp"
 #include "output.hpp"
 #include "wave.hpp"
+#include "gui.hpp"
 
 
 wave::Source *sourceBuilder() {
-    std::ifstream infile("settings.txt");
+    std::ifstream infile("instrument.txt");
     std::string line;
     float args[4];
     wave::Source *s = nullptr;
@@ -79,11 +80,10 @@ int main() {
             sourceBuilder()
         );
 
-        output::open_device();
-
+        gui::init();
         midi::MIDIDevice sequencer(MIDI_DEVICE);
+        output::init();
 
-        output::start();
 
         midi::pkt_t pkt;
         while(1) {
@@ -93,9 +93,11 @@ int main() {
             else if (pkt.status != midi::TIMING && pkt.status != 254) printCode(pkt.status);
         }
     } catch (char const* e) {
-        std::cerr << e << std::endl;
+        gui::showError(e);
+        gui::clear();
         exit(EXIT_FAILURE);
     }
 
+    gui::clear();
     exit(EXIT_SUCCESS);
 }

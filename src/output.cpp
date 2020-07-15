@@ -15,7 +15,7 @@ namespace output {
 
 int sample_nr = 0;
 
-void open_device() {
+void init() {
     if (SDL_Init(SDL_INIT_AUDIO)) throw "Error initializing SDL!";
 
     SDL_AudioSpec want = {
@@ -30,6 +30,8 @@ void open_device() {
     SDL_AudioSpec have;
     
     if (SDL_OpenAudio(&want, &have) < 0) throw "Error opening output!";
+
+    start();
 }
 
 void start() {
