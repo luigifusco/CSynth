@@ -1,5 +1,6 @@
 .swp
 csynth
+.vscode/
 
 # Prerequisites
 *.d
