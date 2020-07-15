@@ -51,6 +51,8 @@
         "ctime": "cpp",
         "ratio": "cpp",
         "mutex": "cpp",
-        "thread": "cpp"
+        "thread": "cpp",
+        "codecvt": "cpp",
+        "iomanip": "cpp"
     }
 }

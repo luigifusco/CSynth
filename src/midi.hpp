@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 namespace midi {
 
@@ -18,11 +19,23 @@ typedef struct {
     unsigned char data[3];
 } pkt_t;
 
-class MIDIDevice {
+class Sequencer {
+    public:
+    virtual pkt_t readPacket() = 0;
+    virtual int close_device() = 0;
+};
+
+class MIDISequencer : public Sequencer {
     private:
     int fd;
     public:
-    MIDIDevice(std::string path);
+    MIDISequencer(std::string path);
+    pkt_t readPacket();
+    int close_device();
+};
+
+class KeyboardSequencer : public Sequencer {
+    public:
     pkt_t readPacket();
     int close_device();
 };
@@ -30,5 +43,7 @@ class MIDIDevice {
 std::string getNoteId(pkt_t &pkt);
 int getNoteTone(pkt_t &pkt);
 float getNoteFrequency(pkt_t &pkt);
+std::vector<std::string> getMIDIOptions();
+Sequencer *getSequencer(int id);
 
 }

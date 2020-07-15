@@ -81,13 +81,13 @@ int main() {
         );
 
         gui::init();
-        midi::MIDIDevice sequencer(MIDI_DEVICE);
+        int MIDIChoice = gui::choose("Choose MIDI device:", midi::getMIDIOptions());
+        midi::Sequencer *sequencer = midi::getSequencer(MIDIChoice);
         output::init();
-
 
         midi::pkt_t pkt;
         while(1) {
-            pkt = sequencer.readPacket();
+            pkt = sequencer->readPacket();
             if (pkt.status == midi::NOTE) wave::getSource()->addNote(pkt);
             else if (pkt.status == midi::NOTEOFF) wave::getSource()->removeNote(pkt);
             else if (pkt.status != midi::TIMING && pkt.status != 254) printCode(pkt.status);
