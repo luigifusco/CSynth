@@ -1,3 +1,6 @@
-square
-phase 16.0 100.0
-#tremolo 8.0 0.5
+square 0.1 0.1 0.8 0.1
+phase 6.0 5.0
+tremolo 3.0 0.3
+delay 0.1 0.05
+delay 0.2 0.1
+delay 0.4 0.15

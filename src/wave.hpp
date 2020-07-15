@@ -14,15 +14,10 @@ class Note {
     float freq;
     int t;
     int vel;
-    Note(float freq, int t, int vel) {
-        this->freq = freq; this->t = t; this->vel = vel;
-    }
-    bool operator<(const Note& n) const {
-        return freq < n.freq;
-    }
-    bool operator==(const Note& n) const {
-        return freq == n.freq;
-    }
+    bool decaying;
+    Note(float freq, int t, int vel, bool decaying);
+    bool operator<(const Note& n) const;
+    bool operator==(const Note& n) const;
 };
 
 class Source {
@@ -34,7 +29,11 @@ class Source {
 };
 
 class Instrument: public Source {
+    protected:
+    float attack, decay, sustain, release;
+    float getVolume(int dt, int velocity, bool decaying);
     public:
+    Instrument(float a, float d, float s, float r);
     std::set<Note> notes;
     void addNote(midi::pkt_t pkt);
     void removeNote(midi::pkt_t pkt);
@@ -69,25 +68,40 @@ class PhaseShiftModifier: public Modifier {
     float getSample(int t);
 };
 
+class DelayModifier: public Modifier {
+    private:
+    float delayIntensity;
+    int len;
+    float *delayBuffer;
+    public:
+    DelayModifier(Source *s, float length, float intensity);
+    float getSample(int t);
+};
+
 class VoidInstrument: public Instrument {
     public:
+    using Instrument::Instrument;
     float getSample(int t);
 };
 
 class SquareInstrument: public Instrument {
     public:
+    using Instrument::Instrument;
     float getSample(int t);
 };
 class SinInstrument: public Instrument {
     public:
+    using Instrument::Instrument;
     float getSample(int t);
 };
 class NoiseInstrument: public Instrument {
     public:
+    using Instrument::Instrument;
     float getSample(int t);
 };
 class SawInstrument: public Instrument {
     public:
+    using Instrument::Instrument;
     float getSample(int t);
 };
 

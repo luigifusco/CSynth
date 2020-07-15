@@ -15,7 +15,7 @@
 wave::Source *sourceBuilder() {
     std::ifstream infile("settings.txt");
     std::string line;
-    float args[2];
+    float args[4];
     wave::Source *s = nullptr;
 
     while (std::getline(infile, line)) {
@@ -23,13 +23,29 @@ wave::Source *sourceBuilder() {
         std::string name;
         if (!(iss >> name)) break;
         if (name == "square") {
-            s = new wave::SquareInstrument();
+            iss >> args[0];
+            iss >> args[1];
+            iss >> args[2];
+            iss >> args[3];
+            s = new wave::SquareInstrument(args[0], args[1], args[2], args[3]);
         } else if (name == "saw") {
-            s = new wave::SawInstrument();
+            iss >> args[0];
+            iss >> args[1];
+            iss >> args[2];
+            iss >> args[3];
+            s = new wave::SawInstrument(args[0], args[1], args[2], args[3]);
         } else if (name == "noise") {
-            s = new wave::NoiseInstrument();
+            iss >> args[0];
+            iss >> args[1];
+            iss >> args[2];
+            iss >> args[3];
+            s = new wave::NoiseInstrument(args[0], args[1], args[2], args[3]);
         } else if (name == "sin") {
-            s = new wave::SinInstrument();
+            iss >> args[0];
+            iss >> args[1];
+            iss >> args[2];
+            iss >> args[3];
+            s = new wave::SinInstrument(args[0], args[1], args[2], args[3]);
         } else if (name == "tremolo") {
             iss >> args[0];
             iss >> args[1];
@@ -38,10 +54,23 @@ wave::Source *sourceBuilder() {
             iss >> args[0];
             iss >> args[1];
             s = new wave::PhaseShiftModifier(s, args[0], args[1]);
+        }  else if (name == "delay") {
+            iss >> args[0];
+            iss >> args[1];
+            s = new wave::DelayModifier(s, args[0], args[1]);
         }
     }
 
     return s;
+}
+
+void printCode(unsigned char status) {
+    for (int i = 0; i < 8; ++i) {
+        std::string val = status & 0x80 ? "1" : "0";
+        std::cout << val;
+        status <<= 1;
+    }
+    std::cout << std::endl << std::flush;
 }
 
 int main() {
@@ -59,18 +88,9 @@ int main() {
         midi::pkt_t pkt;
         while(1) {
             pkt = sequencer.readPacket();
-            if (pkt.status == midi::NOTE) {
-                wave::getSource()->addNote(pkt);
-            } else if (pkt.status == midi::NOTEOFF) {
-                wave::getSource()->removeNote(pkt);
-            } else if (pkt.status != midi::TIMING && pkt.status != 254) {
-                for (int i = 0; i < 8; ++i) {
-                    std::string val = pkt.status & 0x80 ? "1" : "0";
-                    std::cout << val;
-                    pkt.status <<= 1;
-                }
-                std::cout << std::endl << std::flush;
-            }
+            if (pkt.status == midi::NOTE) wave::getSource()->addNote(pkt);
+            else if (pkt.status == midi::NOTEOFF) wave::getSource()->removeNote(pkt);
+            else if (pkt.status != midi::TIMING && pkt.status != 254) printCode(pkt.status);
         }
     } catch (char const* e) {
         std::cerr << e << std::endl;
