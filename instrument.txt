@@ -1,6 +1,9 @@
-saw 0.1 0.5 0.0 0.1
-phase 6.0 5.0
-#tremolo 3.0 0.3
-delay 0.1 0.05
-delay 0.2 0.1
-delay 0.4 0.15
+square 1.0 0.05 0.0 0.025 0.1
+#gain 0.1
+phase 10.0 5.0
+#tremolo 3.0 0.2
+delay 0.1 0.1
+delay 0.2 0.05
+delay 0.4 0.025
+delay 0.8 0.0125
+#pitch 12

@@ -20,24 +20,27 @@ class Note {
     bool operator==(const Note& n) const;
 };
 
+class Instrument;
+
 class Source {
     public:
     virtual float getSample(int t) = 0;
     virtual void addNote(midi::pkt_t pkt) = 0;
     virtual void removeNote(midi::pkt_t pkt) = 0;
     virtual void clearNotes() = 0;
+    virtual Instrument *getInstrument() = 0;
 };
 
 class Instrument: public Source {
-    protected:
-    float attack, decay, sustain, release;
-    float getVolume(int dt, int velocity, bool decaying);
     public:
-    Instrument(float a, float d, float s, float r);
+    float attack, decay, sustain, release, level;
+    float getVolume(int dt, int velocity, bool decaying);
+    Instrument(float l, float a, float d, float s, float r);
     std::set<Note> notes;
     void addNote(midi::pkt_t pkt);
     void removeNote(midi::pkt_t pkt);
     void clearNotes();
+    Instrument *getInstrument();
 };
 
 class Modifier: public Source {
@@ -45,9 +48,11 @@ class Modifier: public Source {
     Source *src;
     public:
     Modifier(Source *s);
-    void addNote(midi::pkt_t pkt);
+    virtual void addNote(midi::pkt_t pkt);
+    virtual float getSample(int t);
     void removeNote(midi::pkt_t pkt);
     void clearNotes();
+    Instrument *getInstrument();
 };
 
 class TremoloModifier: public Modifier {
@@ -76,6 +81,23 @@ class DelayModifier: public Modifier {
     public:
     DelayModifier(Source *s, float length, float intensity);
     float getSample(int t);
+};
+
+class GainModifier: public Modifier {
+    private:
+    float gain;
+    public:
+    GainModifier(Source *s, float gain);
+    float getSample(int t);
+};
+
+class PitchModifier: public Modifier {
+    private:
+    int shift;
+    public:
+    PitchModifier(Source *s, int shift);
+    void addNote(midi::pkt_t pkt);
+    void removeNote(midi::pkt_t pkt);
 };
 
 class VoidInstrument: public Instrument {

@@ -10,7 +10,7 @@
 
 namespace wave {
 
-Source *globalSource = new VoidInstrument(0.0, 0.0, 0.0, 0.0);
+Source *globalSource = new VoidInstrument(0.0, 0.0, 0.0, 0.0, 0.0);
 std::mutex mtx;
 
 inline float getPeriod(float f) {
@@ -40,20 +40,22 @@ bool Note::operator==(const Note& n) const {
     return freq == n.freq;
 }
 
-Instrument::Instrument(float a, float d, float s, float r) {
-    attack=a; decay=d; sustain=s; release=r;
+Instrument::Instrument(float l, float a, float d, float s, float r) {
+    attack=a; decay=d; sustain=s; level=l; release=r;
 }
 
 float Instrument::getVolume(int dt, int velocity, bool decaying) {
     float time = (float) dt / (float) SAMPLE_RATE;
     float vel_factor = (float) velocity / (float) midi::VEL_MAX;
     if (decaying) {
-        if (time < release) return vel_factor * sustain * (1 - (time / release));
+        if (time < release) return vel_factor * level * (1 - (time / release));
         else return 0;
     }
     else if (time < attack) return vel_factor * time / attack;
-    else if (time < attack + decay) return vel_factor * (1 - ((1 - sustain) * (time - attack) / decay)); 
-    else return vel_factor * sustain;
+    else if (time < attack + decay) return vel_factor * (1 - ((1 - level) * (time - attack) / decay)); 
+    else if (time < attack + decay + sustain) return vel_factor * level;
+    else if (time < attack + decay + sustain + release) return vel_factor * level * (1 - ((time - (attack+decay+sustain)) / release));
+    else return 0;
 }
 
 float VoidInstrument::getSample(int t) {
@@ -74,8 +76,7 @@ float SawInstrument::getSample(int t) {
     float val = 0.0f;
     for (Note const& n : notes) {
         float period = getPeriod(n.freq);
-        if (t - n.t < SAMPLE_RATE)
-            val += ((float) n.vel / (float) midi::VEL_MAX) * (1.0f - ((float) (t - n.t) / (float) SAMPLE_RATE)) * ((float) ((int)t%(int)period * 2 / period) - 1) / 10.0f;
+        val += getVolume(t - n.t, n.vel, n.decaying) * ((float) ((int)t%(int)period * 2 / period) - 1) / 10.0f;
     }
 
     return val;
@@ -85,17 +86,19 @@ float SinInstrument::getSample(int t) {
     float val = 0.0f;
     for (Note const& n : notes) {
         float period = getPeriod(n.freq);
-        if (t - n.t < SAMPLE_RATE)
-            val += ((float) n.vel / (float) midi::VEL_MAX) * (1.0f - ((float) (t - n.t) / (float) SAMPLE_RATE)) * (sinf(t * 2 * M_PI / period)) / 10.0f;
+        val += getVolume(t - n.t, n.vel, n.decaying) * (sinf(t * 2 * M_PI / period)) / 10.0f;
     }
 
     return val;
 }
 
 float NoiseInstrument::getSample(int t) {
-    if (notes.size() > 0)
-        return ((float) rand() / (float) RAND_MAX);
-    return 0;
+    float val = 0.0f;
+    for (Note const& n : notes) {
+        val += getVolume(t - n.t, n.vel, n.decaying) * ((float) rand() / (float) RAND_MAX);
+    }
+
+    return val;
 }
 
 void callback(void *user_data, Uint8 *raw_buffer, int bytes) {
@@ -117,13 +120,24 @@ void callback(void *user_data, Uint8 *raw_buffer, int bytes) {
 void Instrument::addNote(midi::pkt_t pkt) {
     mtx.lock();
     Note n(midi::getNoteFrequency(pkt), output::sample_nr, pkt.data[1], false);
-    if (pkt.data[1] == 0 && notes.find(n) != notes.end()) {
-        n.decaying = true;
-        n.vel = notes.find(n)->vel;
+    auto old = notes.find(n);
+    if (pkt.data[1] == 0 && old != notes.end()) {
+        Instrument *inst = globalSource->getInstrument();
+        if (output::sample_nr < old->t + (inst->attack + inst->decay + inst->sustain) * SAMPLE_RATE) {
+            n.decaying = true;
+            n.vel = old->vel;
+            notes.erase(n);
+            notes.insert(n);
+            mtx.unlock();
+        } else {
+            mtx.unlock();
+            return;
+        }
+    } else {
+        notes.erase(n);
+        notes.insert(n);
+        mtx.unlock();
     }
-    notes.erase(n);
-    notes.insert(n);
-    mtx.unlock();
 }
 
 void Instrument::removeNote(midi::pkt_t pkt) {
@@ -153,6 +167,18 @@ void Modifier::clearNotes() {
 
 Modifier::Modifier(Source *s) {
     src = s;
+}
+
+float Modifier::getSample(int t) {
+    return src->getSample(t);
+}
+
+Instrument *Instrument::getInstrument() {
+    return this;
+}
+
+Instrument *Modifier::getInstrument() {
+    return src->getInstrument();
 }
 
 TremoloModifier::TremoloModifier(Source *s, float tremolo, float intensity) : Modifier(s) {
@@ -192,6 +218,28 @@ float PhaseShiftModifier::getSample(int t) {
     int modifier = sinf(t * 2 * M_PI / period) * shiftIntensity;
     
     return src->getSample(t + modifier);
+}
+
+GainModifier::GainModifier(Source *s, float gain) : Modifier(s) {
+    this->gain = gain;
+}
+
+float GainModifier::getSample(int t) {
+    return gain * src->getSample(t);
+}
+
+PitchModifier::PitchModifier(Source *s, int shift) : Modifier(s) {
+    this->shift = shift;
+}
+
+void PitchModifier::addNote(midi::pkt_t pkt) {
+    pkt.data[0] += shift;
+    src->addNote(pkt);
+}
+
+void PitchModifier::removeNote(midi::pkt_t pkt) {
+    pkt.data[0] += shift;
+    src->removeNote(pkt);
 }
 
 }
