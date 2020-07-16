@@ -1,0 +1,9 @@
+square 1.0 0.01 0.0 0.0 0.1
+gain 2
+phase 3.0 5.0
+#tremolo 3.0 0.2
+delay 0.025 0.5
+delay 0.05 0.25
+delay 0.1 0.125
+delay 0.2 0.125
+pitch 24
