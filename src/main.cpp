@@ -45,10 +45,8 @@ int main() {
         }
     } catch (char const* e) {
         gui::showError(e);
-        gui::clear();
         exit(EXIT_FAILURE);
     }
 
-    gui::clear();
     exit(EXIT_SUCCESS);
 }

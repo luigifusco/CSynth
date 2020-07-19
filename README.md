@@ -8,11 +8,11 @@ single components and their arguments.
 The projects depends on `SDL2` for audio output and `ncurses` for input.
 Dependencies can be installed in a Debian environment with:
 ```bash
-sudo apt install libsdl2-dev libncurses-dev
+sudo apt install libsdl2-dev libncurses-dev libsdl2-ttf-dev
 ```
 
 ### Compilation
 The project can be compiled with the following command:
 ```bash
-g++ src/*.cpp -lSDL2 -lm -lncurses -o csynth
+g++ src/*.cpp -lSDL2 -lSDL2_ttf -lm -lncurses -lpthread -o csynth
 ```

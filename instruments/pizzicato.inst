@@ -1,0 +1,5 @@
+saw 1 0.025 0 0 0.1
+delay 0.1 0.5
+delay 0.2 0.25
+phase 6 3
+gain 2
