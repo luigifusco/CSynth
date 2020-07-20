@@ -47,13 +47,13 @@ void stop() {
 std::vector<std::string> getSourceOptions() {
     std::vector<std::string> options;
     for (const auto& entry : std::filesystem::directory_iterator("instruments"))
-        options.push_back(entry.path());
+        options.push_back(entry.path().string().substr(12));
     
     return options;
 }
 
 wave::Source *sourceBuilder(std::string filename) {
-    std::ifstream infile(filename);
+    std::ifstream infile("instruments/" + filename);
     std::string line;
     float args[5];
     wave::Source *s = nullptr;

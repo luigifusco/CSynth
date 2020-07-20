@@ -1,33 +1,36 @@
 #include "gui.hpp"
 
+#include "settings.hpp"
+
 #include <stdlib.h>
 #include <iostream>
-#include <ncurses.h>
 #include <string>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 #include <mutex>
 #include <thread>
 #include <map>
+#include <functional>
 
 namespace gui {
 
 TTF_Font *font = NULL;
 SDL_Renderer *renderer = NULL;
 SDL_Window *window = NULL;
-std::mutex mtx;
-std::map<Uint32, void (*)(SDL_Event &e)> callbacks;
+std::mutex eventMTX;
+std::map<Uint32, std::function<void(SDL_Event &e)>> callbacks;
 
+const SDL_Color white = {255, 255, 255, 255};
 
 void eventHandler() {
     SDL_Event e;
     while (true)
         while (SDL_PollEvent(&e)) {
-            mtx.lock();
+            eventMTX.lock();
             auto c = callbacks.find(e.type);
             if (c != callbacks.end())
                 c->second(e);
-            mtx.unlock();
+            eventMTX.unlock();
         }
             
 }
@@ -37,8 +40,8 @@ void clearScreen() {
     SDL_RenderClear(renderer);
 }
 
-void drawText(std::string text, int x, int y, SDL_Color color) {
-    SDL_Surface *message_surface = TTF_RenderText_Blended_Wrapped(font, text.c_str(), color, 640);
+void drawText(std::string text, int x, int y, const SDL_Color& color) {
+    SDL_Surface *message_surface = TTF_RenderText_Blended_Wrapped(font, text.c_str(), color, WINDOW_WIDTH);
     SDL_Texture *message_texture = SDL_CreateTextureFromSurface(renderer, message_surface);
     SDL_Rect message_rect = {x, y, message_surface->w, message_surface->h};
 
@@ -53,19 +56,19 @@ void init() {
         "CSynth",
         SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,
-        640,
-        480,
+        WINDOW_WIDTH,
+        WINDOW_HEIGHT,
         SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_SHOWN | SDL_WINDOW_FULLSCREEN_DESKTOP
     );
 
-    SDL_SetWindowSize(window, 640, 480);
+    SDL_SetWindowSize(window, WINDOW_WIDTH, WINDOW_HEIGHT);
 
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-    SDL_RenderSetLogicalSize(renderer, 640, 480);
+    SDL_RenderSetLogicalSize(renderer, WINDOW_WIDTH, WINDOW_HEIGHT);
 
     TTF_Init();
     atexit(quit);
-    font = TTF_OpenFont("fonts/default.ttf", 24);
+    font = TTF_OpenFont("fonts/default.ttf", FONT_SIZE);
     if (font == NULL) {
         std::cerr << "font error" << std::endl;
         exit(EXIT_FAILURE);
@@ -75,11 +78,10 @@ void init() {
 
     new std::thread(eventHandler);
 
-
-    showError("Error della bellissima ragazza che sta leggendo questo!");
-
-    SDL_Delay(3000);
-    quit();
+    clearScreen();
+    drawText("Welcome to CSynth!", 0, 0, white);
+    SDL_RenderPresent(renderer);
+    SDL_Delay(500);
 }
 
 void quit() {
@@ -95,15 +97,41 @@ void showError(std::string err) {
 }
 
 int choose(std::string prompt, std::vector<std::string> choices) {
-    mvprintw(0, 0, (prompt+"\n").c_str());
+    std::string text = prompt+"\n";
     for (int i = 0; i < choices.size(); ++i) {
-        printw("%d) %s\n", i, choices[i].c_str());
+        text += std::to_string(i) + ") " + choices[i] + "\n";
     }
-    printw("> ");
-    int choice = getch() - '0';
-    while (choice < 0 || choice >= choices.size()) choice = getch() - '0';
+    clearScreen();
+    drawText(text, 0, 0, white);
+    SDL_RenderPresent(renderer);
 
-    return choice;
+    int selection = 0;
+    int n_choices = choices.size();
+    bool active = true;
+    std::mutex selectionMTX;
+
+    selectionMTX.lock();
+
+    eventMTX.lock();
+    callbacks[SDL_KEYDOWN] = [&selectionMTX, &selection, n_choices, &active](SDL_Event& e) {
+        if (!active) return;
+        char code = e.key.keysym.sym - '0';
+        if (code >= 0 && code < n_choices) {
+            selection = code;
+            active = false;
+            selectionMTX.unlock();
+        }
+    };
+    eventMTX.unlock();
+
+    selectionMTX.lock();
+    selectionMTX.unlock();
+
+    eventMTX.lock();
+    callbacks.erase(SDL_KEYDOWN);
+    eventMTX.unlock();
+
+    return selection;
 }
 
 }
