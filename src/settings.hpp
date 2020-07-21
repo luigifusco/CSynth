@@ -1,7 +1,7 @@
 #pragma once
 
 #define SAMPLE_RATE 44100
-#define N_SAMPLES 512
+#define N_SAMPLES 1024
 
 #define WINDOW_WIDTH 640
 #define WINDOW_HEIGHT 480
