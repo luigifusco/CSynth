@@ -6,4 +6,4 @@ delay 0.025 0.5
 delay 0.05 0.25
 delay 0.1 0.125
 delay 0.2 0.125
-pitch 24
+#pitch 24

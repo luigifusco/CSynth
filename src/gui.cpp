@@ -2,11 +2,8 @@
 
 #include "settings.hpp"
 
-#include <stdlib.h>
 #include <iostream>
 #include <string>
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_ttf.h>
 #include <mutex>
 #include <thread>
 #include <map>
@@ -22,16 +19,21 @@ std::map<Uint32, std::function<void(SDL_Event &e)>> callbacks;
 
 const SDL_Color white = {255, 255, 255, 255};
 
+void addCallback(Uint32 key, std::function<void(SDL_Event &e)> val) {
+    eventMTX.lock();
+    callbacks[key] = val;
+    eventMTX.unlock();
+}
+
 void eventHandler() {
     SDL_Event e;
-    while (true)
-        while (SDL_PollEvent(&e)) {
-            eventMTX.lock();
-            auto c = callbacks.find(e.type);
-            if (c != callbacks.end())
-                c->second(e);
-            eventMTX.unlock();
-        }
+    while (SDL_WaitEvent(&e)) {
+        eventMTX.lock();
+        auto c = callbacks.find(e.type);
+        if (c != callbacks.end())
+            c->second(e);
+        eventMTX.unlock();
+    }
             
 }
 
@@ -48,6 +50,12 @@ void drawText(std::string text, int x, int y, const SDL_Color& color) {
     SDL_RenderCopy(renderer, message_texture, NULL, &message_rect);
     SDL_FreeSurface(message_surface);
     SDL_DestroyTexture(message_texture);
+}
+
+void showMessage(std::string m) {
+    clearScreen();
+    drawText(m, 0, 0, white);
+    SDL_RenderPresent(renderer);
 }
 
 void init() {
@@ -81,7 +89,7 @@ void init() {
     clearScreen();
     drawText("Welcome to CSynth!", 0, 0, white);
     SDL_RenderPresent(renderer);
-    SDL_Delay(500);
+    SDL_Delay(1000);
 }
 
 void quit() {
@@ -94,6 +102,7 @@ void showError(std::string err) {
     clearScreen();
     drawText(err, 0, 0, (SDL_Color){255, 0, 0, 255});
     SDL_RenderPresent(renderer);
+    SDL_Delay(3000);
 }
 
 int choose(std::string prompt, std::vector<std::string> choices) {
@@ -124,6 +133,7 @@ int choose(std::string prompt, std::vector<std::string> choices) {
     };
     eventMTX.unlock();
 
+    // should block until callback unlocks it
     selectionMTX.lock();
     selectionMTX.unlock();
 

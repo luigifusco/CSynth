@@ -36,6 +36,8 @@ int main() {
         midi::Sequencer *sequencer = midi::getSequencer(MIDIChoice);
         output::init();
 
+        gui::showMessage("Let's play!");
+
         midi::pkt_t pkt;
         while(1) {
             pkt = sequencer->readPacket();

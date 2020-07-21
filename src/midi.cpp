@@ -1,6 +1,7 @@
 #include "midi.hpp"
 
-#include <sys/soundcard.h>
+#include "gui.hpp"
+
 #include <fcntl.h>
 #include <unistd.h>
 #include <math.h>
@@ -87,11 +88,38 @@ unsigned char charToMIDI(char c) {
    }
 }
 
+KeyboardSequencer::KeyboardSequencer() {
+    gui::addCallback(SDL_KEYDOWN, [this](gui::Event& e){
+        unsigned char midinote = charToMIDI(e.key.keysym.sym);
+        if (midinote && !e.key.repeat) {
+            std::unique_lock<std::mutex> lck(this->m);
+            this->q.push(midinote);
+            this->q.push(127);
+            this->cv.notify_all();
+        }
+    });
+    gui::addCallback(SDL_KEYUP, [this](gui::Event& e){
+        unsigned char midinote = charToMIDI(e.key.keysym.sym);
+        if (midinote) {
+            std::unique_lock<std::mutex> lck(this->m);
+            this->q.push(midinote);
+            this->q.push(0);
+            this->cv.notify_all();   
+        }
+    });
+}
+
 pkt_t KeyboardSequencer::readPacket() {
     pkt_t pkt;
     pkt.status = NOTE;
-    pkt.data[1] = 127;
-    while (!(pkt.data[0] = charToMIDI(getch())));
+    std::unique_lock<std::mutex> lck(m);
+    while (q.empty())
+        cv.wait(lck);
+
+    pkt.data[0] = q.front();
+    q.pop();
+    pkt.data[1] = q.front();
+    q.pop();
 
     return pkt;
 }

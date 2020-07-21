@@ -2,6 +2,9 @@
 
 #include <string>
 #include <vector>
+#include <mutex>
+#include <queue>
+#include <condition_variable>
 
 namespace midi {
 
@@ -35,7 +38,12 @@ class MIDISequencer : public Sequencer {
 };
 
 class KeyboardSequencer : public Sequencer {
+    private:
+    std::queue<unsigned char> q;
+    std::condition_variable cv;
+    std::mutex m;
     public:
+    KeyboardSequencer();
     pkt_t readPacket();
     int close_device();
 };
