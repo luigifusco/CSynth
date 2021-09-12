@@ -14,5 +14,5 @@ sudo apt install libsdl2-dev libsdl2-ttf-dev
 ### Compilation
 The project can be compiled with the following command:
 ```bash
-g++ src/*.cpp -lSDL2 -lSDL2_ttf -lm -lpthread -o csynth
+gcc src/*.cpp -lSDL2 -lSDL2_ttf -lm -lpthread -std=c++17 -lstdc++ -o csynth
 ```
